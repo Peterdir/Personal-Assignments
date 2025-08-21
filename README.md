@@ -22,15 +22,15 @@ Chương trình sẽ đặt ra một số câu hỏi về các sự kiện trong
 * Cài đặt Visual studio code
 * Cài extension của python trên Visual studio code
 >Chạy chương trình:
-* Mở file Python bằng Visual studio code
-* Ấn tổ hợp phím (Ctrl + Shift + P), sau đó tìm và chọn Select Interpreter để chọn phiên bản python phù hợp
-* Nhấn f5 sau đó chọn Python Debugger
-* Sau khi chạy thành công, bạn sẽ sử dụng chương trình trực tiếp trên terminal
+* Mở file Python bằng Visual studio code.
+* Ấn tổ hợp phím (Ctrl + Shift + P), sau đó tìm và chọn Select Interpreter để chọn phiên bản python phù hợp.
+* Nhấn f5 sau đó chọn Python Debugger, chọn Python file.
+* Sau khi chạy thành công, bạn sẽ sử dụng chương trình trực tiếp trên terminal.
 >Chương trình sẽ hỏi bạn:
 * Hôm nay có mưa không?
 * Hôm nay có bài kiểm tra quan trọng không?
 * Hôm nay có cảm lạnh không?
->Bạn có thể trả lời bằng yes hoặc no (hoặc viết tắt y/n)
+>Bạn có thể trả lời bằng yes hoặc no (hoặc viết tắt y/n).
 
 ## ✍️ Tác giả
 >Họ tên: Lâm Khánh Duy
