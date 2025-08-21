@@ -34,7 +34,7 @@ rules = [
     }
 ]
 
-# Bộ suy luận
+# Máy suy luận
 def inference_engine(facts):
     for rule in rules:
         check = True
