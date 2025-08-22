@@ -42,4 +42,5 @@ Chương trình sẽ đặt ra một số câu hỏi về các sự kiện trong
 >
 >Tài liệu tham khảo:
 * Hands-On Machine Learning with Scikit-Learn, Keras, and TensorFlow - Aurélien Géron
+* Hệ chuyên gia (Expert System) - PGS.TS Phan Huy Khánh
 * Python documentation: https://docs.python.org/3/
