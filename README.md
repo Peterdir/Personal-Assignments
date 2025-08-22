@@ -36,3 +36,10 @@ Chương trình sẽ đặt ra một số câu hỏi về các sự kiện trong
 >Họ tên: Lâm Khánh Duy
 >
 >Mã số sinh viên: 23110084
+
+## ⭐ Lời cảm ơn & Tài liệu tham khảo
+>Em chân thành cảm ơn giảng viên Phan Thị Huyền Trang đã tận tình giảng dạy, truyền đạt và hướng dẫn em, giúp em hoàn thành bài tập cá nhân này.
+>
+>Tài liệu tham khảo:
+* Hands-On Machine Learning with Scikit-Learn, Keras, and TensorFlow - Aurélien Géron
+* Python documentation: https://docs.python.org/3/
