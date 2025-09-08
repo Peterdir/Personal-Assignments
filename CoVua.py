@@ -55,6 +55,30 @@ queens = [['1', '0', '0', '0', '0', '0', '0', '0'],
           ['0', '0', '0', '0', '1', '0', '0', '0'],
           ['0', '0', '0', '0', '0', '0', '1', '0']]
 
+# Tính chi phí
+def queen_moves_count(row, col, N=8):
+    count = 0
+    # đi theo 8 hướng
+    directions = [
+        (1, 0), (-1, 0),  # dọc
+        (0, 1), (0, -1),  # ngang
+        (1, 1), (-1, -1), # chéo chính
+        (1, -1), (-1, 1)  # chéo phụ
+    ]
+    
+    for dr, dc in directions:
+        r, c = row + dr, col + dc
+        while 0 <= r < N and 0 <= c < N:
+            count += 1
+            r += dr
+            c += dc
+    return count
+
+def cost_of_state(state, N=8):
+    total_cost = 0
+    for row, col in enumerate(state):
+        total_cost += queen_moves_count(row, col, N)
+    return total_cost
 
 # Tạo hàm sinh trạng thái
 def check_queens(state, col):
@@ -67,6 +91,34 @@ def check_queens(state, col):
             return False
     
     return True
+
+def dfs_queens(N):
+    stack = []
+    start = []
+    stack.append(start)
+    parent = {tuple(start): None}
+    solutions = []
+
+    while not (len(stack) == 0):
+        state = stack.pop()
+
+        if len(state) == N:
+            path = []
+            s = tuple(state)
+            while s is not None:
+                path.append(list(s))
+                s = parent[s]
+            path.reverse()
+            solutions.append(path)
+
+        for col in range(N):
+            if check_queens(state, col):
+                new_state = state + [col]
+                if tuple(new_state) not in parent:
+                    parent[tuple(new_state)] = tuple(state)
+                    stack.append(new_state)
+
+    return solutions
 
 def bfs_queens(N):
     q = Queue()
@@ -122,7 +174,7 @@ def draw_state(state):
 
 def prepare_bfs_solution():
     global current_path, current_index
-    solutions = bfs_queens(N)
+    solutions = dfs_queens(N)
     if len(solutions) > 0:
         current_path = solutions[0]   # lấy đường đi của lời giải đầu tiên
         current_index = 0
@@ -171,7 +223,23 @@ def table_operator():
     #         y2 = y1 + size
     #         C2.create_image((x1 + x2)/2, (y1 + y2)/2,
     #                         image=queen_img)
-                
+
+is_running = False  # trạng thái auto chạy
+
+def auto_run():
+    global is_running
+    is_running = True
+    run_next_state()
+
+def stop_run():
+    global is_running
+    is_running = False
+
+def run_next_state():
+    global current_index, is_running
+    if is_running and current_index < len(current_path):
+        show_next_state()
+        root.after(500, run_next_state)  # chạy lại sau 500ms (0.5s mỗi bước)   
 
 table_initial()
 table_operator()
@@ -217,5 +285,21 @@ btn_next.grid(row=0, column=2, padx=20)
 #                    relief="raised", bd=3,
 #                    padx=20, pady=10)
 # btn_solve.grid(row=0, column=1, padx=20)
+
+# Auto Run
+btn_auto = Button(btn_frame,
+                  text="▶ Auto Run",
+                  font=("Arial", 14, "bold"),
+                  bg="#2196F3", fg="white",
+                  command=auto_run)
+btn_auto.grid(row=0, column=4, padx=20)
+
+# Stop
+btn_stop = Button(btn_frame,
+                  text="⏸ Stop",
+                  font=("Arial", 14, "bold"),
+                  bg="#F44336", fg="white",
+                  command=stop_run)
+btn_stop.grid(row=0, column=5, padx=20)
 
 root.mainloop()
