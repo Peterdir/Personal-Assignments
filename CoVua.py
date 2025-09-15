@@ -29,9 +29,9 @@ offset = 30
 size_col = 10
 current_path = []
 current_index = 0
-cost_map = {}      # lưu chi phí từ UCS
+cost_map = {}  # Lưu chi phí
 is_running = False
-current_algo = None   # "BFS", "DFS", "UCS"
+current_algo = None
 
 # ======================
 # Hàm vẽ bàn cờ & tiện ích
@@ -134,7 +134,43 @@ def cost_of_state(state):
     return total
 
 # ======================
-# UCS
+# DLS (Depth - limited search)
+# ======================
+def iterative_deepening_search(N):
+    for depth in range(N):
+        result = depth_limited_search(N, depth)
+        if result != "cutoff":
+            return result
+
+def depth_limited_search(N, limit):
+    start = []
+    parent = {tuple(start): None}
+    return recursive_DLS(start, parent, N, limit)
+
+def recursive_DLS(state, parent, N, limit):
+    if len(state) == N:
+        return reconstruct_path(parent, tuple(state))
+    elif limit == 0:
+        return "cutoff"
+    else:
+        cutoff_occurred = False
+        for col in range(N):
+            if check_queens(state, col):
+                new_state = state + [col]
+                if tuple(new_state) not in parent:
+                    parent[tuple(new_state)] = tuple(state)
+                result = recursive_DLS(new_state, parent, N, limit - 1)
+                if result == "cutoff":
+                    cutoff_occurred = True
+                elif result != "failure":
+                    return result 
+        if cutoff_occurred:
+            return "cutoff"
+        else:
+            return "failure"
+
+# ======================
+# UCS (Uniform - cost search)
 # ======================
 def uniform_cost_search(N):
     start = []
@@ -172,7 +208,7 @@ def dfs_queens(N):
         tstate = tuple(state)
         if len(state) == N:
             return [reconstruct_path(parent, tstate)]
-        for col in range(N-1, -1, -1):
+        for col in range(N - 1, -1, -1):
             if check_queens(state, col):
                 new_state = state + [col]
                 tnew = tuple(new_state)
@@ -291,6 +327,28 @@ def run_ucs_auto():
         is_running = True
         run_next_state()
 
+def run_dls_auto():
+    global current_path, current_index, is_running, current_algo
+    solutions = depth_limited_search(N, 8)
+    if solutions:
+        current_algo = "DLS"
+        current_path = solutions
+        current_index = 0
+        is_running = True
+        run_next_state()
+
+
+def run_iddfs_auto():
+    global current_path, current_index, is_running, current_algo
+    solutions = iterative_deepening_search(N)
+    if solutions:
+        current_algo = "Iterative deepening search"
+        current_path = solutions
+        current_index = 0
+        is_running = True
+        run_next_state()
+
+
 # ======================
 # Load ảnh hậu
 # ======================
@@ -323,14 +381,18 @@ Button(btn_frame,text="🌲 DFS",font=("Arial",14,"bold"),
        bg="#795548",fg="white",command=run_dfs_auto).grid(row=0,column=1,padx=10,pady=10)
 Button(btn_frame,text="💰 UCS",font=("Arial",14,"bold"),
        bg="#3F51B5",fg="white",command=run_ucs_auto).grid(row=0,column=2,padx=10,pady=10)
+Button(btn_frame,text="DLS",font=("Arial",14,"bold"),
+       bg="#9E9E9E",fg="white",command=run_dls_auto).grid(row=0,column=3,padx=10,pady=10)
+Button(btn_frame,text="Iterative deepening DFS",font=("Arial",14,"bold"),
+       bg="#9E9E9E",fg="white",command=run_dls_auto).grid(row=0,column=4,padx=10,pady=10)
 Button(btn_frame,text="⏯ Resume",font=("Arial",14,"bold"),
-       bg="#4CAF50",fg="white",command=resume_run).grid(row=0,column=3,padx=10,pady=10)
+       bg="#4CAF50",fg="white",command=resume_run).grid(row=0,column=5,padx=10,pady=10)
 Button(btn_frame,text="⏸ Stop",font=("Arial",14,"bold"),
-       bg="#F44336",fg="white",command=stop_run).grid(row=0,column=4,padx=10,pady=10)
+       bg="#F44336",fg="white",command=stop_run).grid(row=0,column=6,padx=10,pady=10)
 Button(btn_frame,text="🧹 Clear",font=("Arial",14,"bold"),
-       bg="#9E9E9E",fg="white",command=clear_queens).grid(row=0,column=5,padx=10,pady=10)
+       bg="#9E9E9E",fg="white",command=clear_queens).grid(row=0,column=7,padx=10,pady=10)
 
-for i in range(6):
+for i in range(8):
     btn_frame.grid_columnconfigure(i, weight=1)
 
 cost_label = Label(root, text="", font=("Arial",14), fg="blue")
