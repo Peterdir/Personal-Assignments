@@ -6,6 +6,8 @@ from queue import Queue, PriorityQueue
 from tkinter import *
 import os
 import math
+import numpy as np
+from Algorithm import *
 from PIL import Image, ImageTk
 
 # ======================
@@ -51,7 +53,7 @@ def clear_queens():
     current_algo = None
 
     C1.delete("all")
-    draw_labels(C2)
+    draw_labels(C1)
     for i in range(N):
         for j in range(N):
             x1 = size * i + offset
@@ -107,234 +109,7 @@ def table_operator():
             color = "#873e23" if (i + j) % 2 == 0 else "#eab676"
             C2.create_rectangle(x1, y1, x2, y2, fill=color)
 
-# ======================
-# Thuật toán chung
-# ======================
-def check_queens(state, col):
-    row = len(state)
-    for r in range(row):
-        c = state[r]
-        if c == col or abs(r - row) == abs(c - col):
-            return False
-    return True
 
-def reconstruct_path(parent, state_tuple):
-    path = []
-    s = state_tuple
-    while s is not None:
-        path.append(list(s))
-        s = parent.get(s)
-    return path[::-1]
-
-# ======================
-# Mobility / cost functions
-# ======================
-def occupied_positions(state):
-    return {(r, c) for r, c in enumerate(state)}
-
-DIRECTIONS = [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(-1,1),(1,-1),(1,1)]
-
-def mobility_of_queen(state, row, col):
-    occ = occupied_positions(state)
-    count = 0
-    for dr, dc in DIRECTIONS:
-        r, c = row+dr, col+dc
-        while 0 <= r < N and 0 <= c < N:
-            if (r, c) in occ:
-                break
-            count += 1
-            r += dr
-            c += dc
-    return count
-
-def cost_of_state(state):
-    total = 0
-    for r, c in enumerate(state):
-        total += mobility_of_queen(state, r, c)
-    return total
-
-# ======================
-# Cost function for Informed (Heuristic) Search Strategies
-# ====================== 
-GOAL_STATE = [1, 3, 5, 7, 2, 0, 6, 4]
-def is_goal(state):
-    global GOAL_STATE
-    return state == GOAL_STATE
-
-def heuristic(state):
-    total = 0
-    for row in range(len(state)):
-        total += abs(state[row] - GOAL_STATE[row])
-    
-    return total
-
-def greedy_best_first_search():
-    global N
-    start = []
-    frontier = PriorityQueue()
-    frontier.put((heuristic(start), start))
-    parent = {tuple(start): None}
-
-    while not frontier.empty():
-        h_val, state = frontier.get()
-
-        if is_goal(state):
-            return reconstruct_path(parent, tuple(state))
-        
-        for col in range(N):
-            if check_queens(state, col):
-                new_state = state + [col]
-                if tuple(new_state) not in parent:
-                    parent[tuple(new_state)] = tuple(state)
-                    frontier.put((heuristic(new_state), new_state))
-
-    return []
-
-# ======================
-# DLS (Depth - limited search)
-# ======================
-def iterative_deepening_search(N):
-    for depth in range(N + 1):
-        result = depth_limited_search(N, depth)
-        if result != "cutoff":
-            return result
-
-def depth_limited_search(N, limit):
-    start = []
-    parent = {tuple(start): None}
-    return recursive_DLS(start, parent, N, limit)
-
-def recursive_DLS(state, parent, N, limit):
-    if len(state) == N:
-        return reconstruct_path(parent, tuple(state))
-    elif limit == 0:
-        return "cutoff"
-    else:
-        cutoff_occurred = False
-        for col in range(N):
-            if check_queens(state, col):
-                new_state = state + [col]
-                if tuple(new_state) not in parent:
-                    parent[tuple(new_state)] = tuple(state)
-                result = recursive_DLS(new_state, parent, N, limit - 1)
-                if result == "cutoff":
-                    cutoff_occurred = True
-                elif result != "failure":
-                    return result 
-        if cutoff_occurred:
-            return "cutoff"
-        else:
-            return "failure"
-
-# ======================
-# UCS (Uniform - cost search)
-# ======================
-def uniform_cost_search(N):
-    start = []
-    frontier = PriorityQueue()
-    frontier.put((cost_of_state(start), start))
-    parent = {tuple(start): None}
-    cost_so_far = {tuple(start): cost_of_state(start)}
-
-    while not frontier.empty():
-        path_cost, state = frontier.get()
-        tstate = tuple(state)
-        if cost_so_far.get(tstate) != path_cost:
-            continue
-        if len(state) == N:
-            return reconstruct_path(parent, tstate), cost_so_far
-        for col in range(N):
-            if check_queens(state, col):
-                new_state = state + [col]
-                new_cost = cost_of_state(new_state)
-                tnew = tuple(new_state)
-                if tnew not in cost_so_far or new_cost < cost_so_far[tnew]:
-                    cost_so_far[tnew] = new_cost
-                    parent[tnew] = tstate
-                    frontier.put((new_cost, new_state))
-    return [], cost_so_far
-
-# ======================
-# DFS / BFS
-# ======================
-def dfs_queens(N):
-    stack = [[]]
-    parent = {tuple([]): None}
-    while stack:
-        state = stack.pop()
-        tstate = tuple(state)
-        if len(state) == N:
-            return [reconstruct_path(parent, tstate)]
-        for col in range(N):
-            if check_queens(state, col):
-                new_state = state + [col]
-                tnew = tuple(new_state)
-                if tnew not in parent:
-                    parent[tnew] = tstate
-                    stack.append(new_state)
-    return []
-
-def bfs_queens(N):
-    def actions(state): return [col for col in range(N) if check_queens(state, col)]
-    def child_node(state, action): return state + [action]
-    node = []
-    frontier = Queue()
-    frontier.put(node)
-    parent = {tuple(node): None}
-    while not frontier.empty():
-        state = frontier.get()
-        for action in actions(state):
-            child = child_node(state, action)
-            tchild = tuple(child)
-            if tchild not in parent:
-                parent[tchild] = tuple(state)
-                if len(child) == N:
-                    return [reconstruct_path(parent, tchild)]
-                frontier.put(child)
-    return []
-
-# ======================
-# A* Search
-# ======================
-def astar_search(N):
-    """
-    A*: sử dụng g = cost_of_state(state) và h = heuristic(state)
-    Trả về (path, cost_map) giống kiểu của UCS: path là danh sách trạng thái từ start->goal,
-    cost_map lưu giá trị g (cost_of_state) của từng trạng thái được thăm/ghi nhận.
-    """
-    start = []
-    frontier = PriorityQueue()
-    g_start = cost_of_state(start)
-    f_start = g_start + heuristic(start)
-    frontier.put((f_start, g_start, start))
-    parent = {tuple(start): None}
-    cost_so_far = {tuple(start): g_start}
-
-    while not frontier.empty():
-        f_val, g_val, state = frontier.get()
-        tstate = tuple(state)
-        # Bỏ những entry cũ không khớp với chi phí hiện tại
-        if cost_so_far.get(tstate, None) != g_val:
-            continue
-
-        # Goal test: khi đạt đủ N hàng (hoặc so sánh với GOAL_STATE tuỳ bạn)
-        if len(state) == N:
-            return reconstruct_path(parent, tstate), cost_so_far
-
-        # Expand
-        for col in range(N):
-            if check_queens(state, col):
-                new_state = state + [col]
-                tnew = tuple(new_state)
-                new_g = cost_of_state(new_state)  # theo cách bạn dùng ở UCS
-                # Nếu chưa thấy hoặc tìm được chi phí g nhỏ hơn -> cập nhật
-                if tnew not in cost_so_far or new_g < cost_so_far[tnew]:
-                    cost_so_far[tnew] = new_g
-                    parent[tnew] = tstate
-                    new_f = new_g + heuristic(new_state)
-                    frontier.put((new_f, new_g, new_state))
-
-    return [], cost_so_far
 
 # ======================
 # Generator
@@ -504,6 +279,50 @@ def run_astar_auto():
         is_running = True
         run_next_state()
 
+def run_hill_auto():
+    global current_path, current_index, is_running, current_algo
+    solution, h_val = hillClimbing_search()
+    if solution is not None:
+        current_algo = "Hill Climbing"
+        
+        current_path = [solution]
+        current_index = 0
+        is_running = True
+        run_next_state()
+
+def run_simulatedAnealling_auto():
+    global current_path, current_index, is_running, current_algo
+    solution, h_val = simulated_annealing()
+    if solution is not None:
+        current_algo = "Simulated Annealing"
+        
+        current_path = [solution]
+        current_index = 0
+        is_running = True
+        run_next_state()
+
+def run_localBeam_auto():
+    global current_path, current_index, is_running, current_algo
+    solution, h_val = local_beam_search()
+    if solution is not None:
+        current_algo = "Local Beam"
+        
+        current_path = [solution]
+        current_index = 0
+        is_running = True
+        run_next_state()
+
+def run_Genetic_auto():
+    global current_path, current_index, is_running, current_algo
+    solution, h_val = genetic_algorithm()
+    if solution is not None:
+        current_algo = "Genetic algorithm"
+        
+        current_path = [solution]
+        current_index = 0
+        is_running = True
+        run_next_state()
+
 # ======================
 # Step-by-step
 # ======================
@@ -568,14 +387,22 @@ Button(btn_frame,text="Greedy best-first search",font=("Arial",14,"bold"),
        bg="#9E9E9E",fg="white",command=run_gbfs_auto).grid(row=0,column=5,padx=10,pady=10)
 Button(btn_frame,text="A* Search",font=("Arial",14,"bold"),
        bg="#FF9800",fg="white",command=run_astar_auto).grid(row=0,column=6,padx=10,pady=10)
+Button(btn_frame,text="Hill Climbing",font=("Arial",14,"bold"),
+       bg="#607D8B",fg="white",command=run_hill_auto).grid(row=1,column=0,padx=10,pady=10)
+Button(btn_frame,text="Simulated Annealing",font=("Arial",14,"bold"),
+       bg="#607D8B",fg="white",command=run_simulatedAnealling_auto).grid(row=1,column=1,padx=10,pady=10)
+Button(btn_frame,text="Local Beam",font=("Arial",14,"bold"),
+       bg="#607D8B",fg="white",command=run_localBeam_auto).grid(row=1,column=2,padx=10,pady=10)
+Button(btn_frame,text="Genetic algorithm",font=("Arial",14,"bold"),
+       bg="#607D8B",fg="white",command=run_Genetic_auto).grid(row=1,column=3,padx=10,pady=10)
 Button(btn_frame,text="⏯ Resume",font=("Arial",14,"bold"),
-       bg="#4CAF50",fg="white",command=resume_run).grid(row=0,column=7,padx=10,pady=10)
+       bg="#4CAF50",fg="white",command=resume_run).grid(row=1,column=4,padx=10,pady=10)
 Button(btn_frame,text="⏸ Stop",font=("Arial",14,"bold"),
-       bg="#F44336",fg="white",command=stop_run).grid(row=0,column=8,padx=10,pady=10)
+       bg="#F44336",fg="white",command=stop_run).grid(row=1,column=5,padx=10,pady=10)
 Button(btn_frame,text="🧹 Clear",font=("Arial",14,"bold"),
-       bg="#9E9E9E",fg="white",command=clear_queens).grid(row=0,column=9,padx=10,pady=10)
+       bg="#9E9E9E",fg="white",command=clear_queens).grid(row=1,column=6,padx=10,pady=10)
 
-for i in range(10):
+for i in range(7):
     btn_frame.grid_columnconfigure(i, weight=1)
 
 cost_label = Label(root, text="", font=("Arial",14), fg="blue")
