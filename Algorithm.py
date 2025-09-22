@@ -224,7 +224,7 @@ def astar_search(N):
                 new_state = state + [col]
                 tnew = tuple(new_state)
                 new_g = cost_of_state(new_state)
-                if tnew not in cost_so_far or new_g < cost_ so_far[tnew]:
+                if tnew not in cost_so_far or new_g < cost_so_far[tnew]:
                     cost_so_far[tnew] = new_g
                     parent[tnew] = tstate
                     new_f = new_g + heuristic(new_state)
@@ -236,18 +236,12 @@ def astar_search(N):
 # Hill-climbing search
 # ======================
 def heuristic_hillClimbing(state):
+    n = len(state)
     result = 0
-    for row in range(len(state)):
-        col = state[row]
-        for r, c in DIRECTIONS:
-            nr = row + r
-            nc = col + c
-            while 0 <= nr < N and 0 <= nc < N:
-                if state[nr] == nc:
-                    result += 1
-                
-                nr += r
-                nc += c
+    for i in range(n):
+        for j in range(i + 1, n):
+            if state[i] == state[j] or abs(state[i] - state[j]) == abs(i - j):
+                result += 1
     return result
 
 def generator_state(state):
@@ -286,23 +280,17 @@ def hillClimbing_search():
 # Simulated Annealing
 # ======================
 def heuristic_simulatedAnnealing(state):
+    n = len(state)
     result = 0
-    for row in range(len(state)):
-        col = state[row]
-        for r, c in DIRECTIONS:
-            nr = row + r
-            nc = col + c
-            while 0 <= nr < N and 0 <= nc < N:
-                if state[nr] == nc:
-                    result += 1
-                
-                nr += r
-                nc += c
+    for i in range(n):
+        for j in range(i + 1, n):
+            if state[i] == state[j] or abs(state[i] - state[j]) == abs(i - j):
+                result += 1
     return result
 
 def simulated_annealing():
     T = 1
-    cooling = 0.995
+    cooling = 0.95
     current_state = np.random.choice(np.arange(0, N), size=N, replace=False).tolist()
     current_heuristic = heuristic_simulatedAnnealing(current_state)
 
