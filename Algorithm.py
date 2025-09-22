@@ -69,6 +69,9 @@ def heuristic(state):
     
     return total
 
+# ======================
+# Greedy best first search
+# ======================
 def greedy_best_first_search():
     global N
     start = []
@@ -221,7 +224,7 @@ def astar_search(N):
                 new_state = state + [col]
                 tnew = tuple(new_state)
                 new_g = cost_of_state(new_state)
-                if tnew not in cost_so_far or new_g < cost_so_far[tnew]:
+                if tnew not in cost_so_far or new_g < cost_ so_far[tnew]:
                     cost_so_far[tnew] = new_g
                     parent[tnew] = tstate
                     new_f = new_g + heuristic(new_state)
