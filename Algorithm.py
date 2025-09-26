@@ -143,7 +143,7 @@ def uniform_cost_search(N):
         if cost_so_far.get(tstate) != path_cost:
             continue
         if len(state) == N:
-            return reconstruct_path(parent, tstate), cost_so_far
+            return [reconstruct_path(parent, tstate)], cost_so_far
         for col in range(N):
             if check_queens(state, col):
                 new_state = state + [col]

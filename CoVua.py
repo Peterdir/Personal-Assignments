@@ -41,6 +41,7 @@ step_delay = 10
 dfs_gen = None 
 bfs_gen = None
 ucs_gen = None
+dls_gen = None
 # Danh sách trạng thái 
 
 # ======================
@@ -175,6 +176,25 @@ def ucs_generator(N):
                     pq.put((new_cost, new_state))
                     yield ("push", new_state, new_cost)
 
+def dls_generator(N, limit):
+    stack = [([], 0)]
+    parent = {tuple([]): None}
+
+    while stack is not None:
+        state, depth = stack.pop()
+        yield("visit", state)
+        if len(state) == N:
+            yield("found", tuple(state), parent)
+            return
+        
+        if depth < limit:
+            for col in range(N):
+                if check_queens(state, col):
+                    new_state = state + [col]
+                    if tuple(new_state) not in parent:
+                        parent[tuple(new_state)] = tuple(state)
+                        stack.append((new_state, depth + 1))
+                        yield("push", new_state)
 
 # ======================
 # Hiển thị trạng thái
@@ -299,20 +319,22 @@ def run_bfs_auto():
 def run_ucs_auto():
     reset_before_run()
     global ucs_gen, current_algo, is_running
+    solution, cost = uniform_cost_search(N)
+    if solution:
+        final_solution = solution[0][-1]
+        draw_state_on_canvas(C2, final_solution, show_mobility=True)
     ucs_gen = ucs_generator(N)
     current_algo = "UCS"
     is_running = True
     run_ucs_step()
 
 def run_dls_auto():
-    global current_path, current_index, is_running, current_algo
-    solutions = depth_limited_search(N, 8)
-    if solutions:
-        current_algo = "DLS"
-        current_path = solutions
-        current_index = 0
-        is_running = True
-        run_next_state()
+    reset_before_run()
+    global dls_gen, current_algo, is_running
+    dls_gen = dls_generator(N, 8) # Giới hạn độ sâu là 8
+    current_algo = "DLS"
+    is_running = True
+    run_dls_step()
 
 def run_ids_auto():
     global current_path, current_index, is_running, current_algo
@@ -430,7 +452,7 @@ def run_bfs_step():
 
 def run_ucs_step():
     global ucs_gen, is_running, after_id
-    if not is_running:
+    if not is_running:  
         return
     try:
         event = next(ucs_gen)
@@ -447,7 +469,23 @@ def run_ucs_step():
     except StopIteration:
         is_running = False
 
-
+def run_dls_step():
+    global dls_gen, is_running, after_id
+    if not is_running:
+        return
+    try:
+        event = next(dls_gen)
+        if event[0] in ("visit", "push"):
+            state = event[1]
+            draw_state_on_canvas(C1, state)
+        elif event[0] == "found":
+            final_state = list(event[1])
+            draw_state_on_canvas(C2, final_state)
+            is_running = False
+            return
+        after_id = root.after(step_delay, run_dls_step)
+    except StopIteration:
+        is_running = False
 # ======================
 # Load ảnh hậu
 # ======================
@@ -475,13 +513,13 @@ btn_frame = Frame(root, bg="white")
 btn_frame.pack(side=BOTTOM, pady=10, fill="x")
 
 # Hàng 1: classical search
-Button(btn_frame, text="🌐 BFS", font=("Arial",14,"bold"),
+Button(btn_frame, text="BFS", font=("Arial",14,"bold"),
        bg="#009688", fg="white", width=18,
        command=run_bfs_auto).grid(row=0, column=0, padx=5, pady=5)
-Button(btn_frame, text="🌲 DFS", font=("Arial",14,"bold"),
+Button(btn_frame, text="DFS", font=("Arial",14,"bold"),
        bg="#795548", fg="white", width=18,
        command=run_dfs_auto).grid(row=0, column=1, padx=5, pady=5)
-Button(btn_frame, text="💰 UCS", font=("Arial",14,"bold"),
+Button(btn_frame, text="UCS", font=("Arial",14,"bold"),
        bg="#3F51B5", fg="white", width=18,
        command=run_ucs_auto).grid(row=0, column=2, padx=5, pady=5)
 Button(btn_frame, text="DLS", font=("Arial",14,"bold"),
