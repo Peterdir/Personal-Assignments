@@ -3,14 +3,47 @@
 >Mục tiêu của bài toán là đặt 8 quân hậu vào bàn cờ kích thước 8x8 sao cho không có quân hậu nào ăn lẫn nhau.
 
 ## 🧠 Giao diện (Interface)
->Phần mềm được xây dựng bằng Python - Tkinter, hiện tại hỗ trợ:
-* Hiển thị 2 bàn cờ (bàn cờ trống và bàn cờ sau khi đặt 8 quân hậu lên thỏa mãn yêu cầu bài toán).
-* Giao diện các nút hỗ trợ người dùng thực hiện: Shuffle (Xáo trộn các quân hậu), Solve(Giải quyết bài toán bằng cách đặt lại các quân hậu).
+>Phần mềm được xây dựng bằng Python - Tkinter, hỗ trợ:
+- **2 bàn cờ song song**:  
+  - Bên trái (**C1**): hiển thị quá trình thuật toán duyệt từng trạng thái.  
+  - Bên phải (**C2**): hiển thị lời giải cuối cùng.  
+- **Thanh nút chức năng**:  
+  - **Nhóm thuật toán tìm kiếm cổ điển (Classical Search)**  
+    - 🌐 **BFS**  
+    - 🌲 **DFS**  
+    - 💰 **UCS** (có hiển thị *mobility-based cost*)  
+    - **DLS**  
+    - **IDS**  
+  - **Nhóm thuật toán heuristic (Informed Search)**  
+    - **Greedy Best-First Search**  
+    - **A\* Search**  
+    - **Hill Climbing**  
+    - **Simulated Annealing**  
+  - **Nhóm local search nâng cao & điều khiển**  
+    - **Local Beam Search**  
+    - **Genetic Algorithm**  
+    - ⏯ **Resume** (tiếp tục chạy)  
+    - ⏸ **Stop** (dừng chạy)  
+    - 🧹 **Clear** (xóa bàn cờ, reset trạng thái)  
+- **Thanh thông tin Cost**: hiển thị chi phí lời giải (chỉ dùng cho UCS/A\*).  
 
-## ⚙️ Định hướng phát triển (Next steps)
->Trong tương lai phần mềm sẽ được bổ sung:
-* Thuật toán tìm kiếm lời giải.
-* Hiển thị nhiều lời giải khác nhau khi thao tác các nút.
+## 🔍 Các thuật toán đã hỗ trợ  
+### Thuật toán tìm kiếm không thông tin (Uninformed Search)  
+- Breadth-First Search (BFS)  
+- Depth-First Search (DFS)  
+- Uniform Cost Search (UCS)  
+- Depth-Limited Search (DLS)  
+- Iterative Deepening Search (IDS)  
+
+### Thuật toán tìm kiếm có thông tin (Informed Search)  
+- Greedy Best-First Search (GBFS)  
+- A* Search  
+
+### Thuật toán tối ưu / Local Search  
+- Hill Climbing  
+- Simulated Annealing  
+- Local Beam Search  
+- Genetic Algorithm
 
 ## 💻 Cách chạy chương trình
 >Yêu cầu:
@@ -34,3 +67,4 @@
 >Tài liệu tham khảo:
 * Python Tkinter Tutorial: https://www.geeksforgeeks.org/python/python-tkinter-tutorial/
 * Python documentation: https://docs.python.org/3/
+* Russell 2016 Artificial intelligence a modern approach - Stuart Russell và Peter Norvig
