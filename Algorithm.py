@@ -276,7 +276,6 @@ def hillClimbing_search():
 # ======================
 # Simulated Annealing
 # ======================
-
 def simulated_annealing():
     T = 1
     cooling = 0.95
@@ -393,7 +392,6 @@ def genetic_algorithm(pop_size=20, max_generations=1000):
     for gen in range(max_generations):
         fitnesses = [heuristic_conflict(ind) for ind in population]
 
-        # Kiểm tra có giải pháp tối ưu
         if min(fitnesses) == 0:
             best_index = fitnesses.index(0)
             return population[best_index], 0
@@ -408,7 +406,6 @@ def genetic_algorithm(pop_size=20, max_generations=1000):
 
         population = new_population
 
-        # Lưu trạng thái tốt nhất hiện tại (fitness nhỏ nhất)
         min_fit = min(fitnesses)
         if min_fit < best_fit:
             best_fit = min_fit

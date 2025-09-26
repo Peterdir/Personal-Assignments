@@ -37,8 +37,10 @@ is_running = False
 current_algo = None
 
 # Thời gian giữa các bước chạy trên C!
-step_delay = 100
-dfs_gen = None  # biến toàn cục để lưu generator
+step_delay = 10
+dfs_gen = None 
+bfs_gen = None
+ucs_gen = None
 # Danh sách trạng thái 
 
 # ======================
@@ -126,14 +128,12 @@ def dfs_generator(N):
         for col in range(N):
             if check_queens(state, col):
                 new_state = state + [col]
-                tnew = tuple(new_state)
-                if tnew not in parent:
-                    parent[tnew] = tuple(state)
+                if tuple(new_state) not in parent:
+                    parent[tuple(new_state)] = (state)
                     stack.append(new_state)
                     yield ("push", new_state)  # báo là thêm trạng thái mới vào stack
 
 def bfs_generator(N):
-    from queue import Queue
     q = Queue()
     q.put([])
     parent = {tuple([]): None}
@@ -146,11 +146,36 @@ def bfs_generator(N):
         for col in range(N):
             if check_queens(state, col):
                 new_state = state + [col]
-                tnew = tuple(new_state)
-                if tnew not in parent:
-                    parent[tnew] = tuple(state)
+                if tuple(new_state) not in parent:
+                    parent[tuple(new_state)] = (state)
                     q.put(new_state)
                     yield ("push", new_state)
+
+def ucs_generator(N):
+    pq = PriorityQueue()
+    pq.put((0, []))
+
+    parent = {tuple([]): None}
+    cost_map = {tuple([]): 0}
+
+    while not pq.empty():
+        cost, state = pq.get()
+        yield ("visit", state, cost)
+        if len(state) == N:
+            yield ("found", state, parent, cost_map)
+            return
+        for col in range(N):
+            if check_queens(state, col):
+                new_state = state + [col]
+                new_cost = cost_of_state(new_state)
+                t_new_state = tuple(new_state)
+                if t_new_state not in cost_map or new_cost < cost_map[t_new_state]:
+                    parent[t_new_state] = tuple(state)
+                    cost_map[t_new_state] = new_cost
+                    pq.put((new_cost, new_state))
+                    yield ("push", new_state, new_cost)
+
+
 # ======================
 # Hiển thị trạng thái
 # ======================
@@ -201,12 +226,17 @@ def draw_state_on_canvas(canvas, state, show_mobility=False, show_cost=None):
 # ======================
 # Auto-run
 # ======================
+after_id = None
 def reset_before_run():
-    global is_running, current_path, current_index, current_algo
+    global is_running, current_path, current_index, current_algo, after_id
     is_running = False
     current_path = []
     current_index = 0
     current_algo = None
+
+    if after_id is not None:
+        root.after_cancel(after_id)
+        after_id = None
 
 def show_next_state():
     global current_index
@@ -267,15 +297,12 @@ def run_bfs_auto():
     run_bfs_step()
 
 def run_ucs_auto():
-    global current_path, current_index, cost_map, is_running, current_algo
-    path, cmap = uniform_cost_search(N)
-    cost_map = cmap
-    if path:
-        current_algo = "UCS"
-        current_path = path
-        current_index = 0
-        is_running = True
-        run_next_state()
+    reset_before_run()
+    global ucs_gen, current_algo, is_running
+    ucs_gen = ucs_generator(N)
+    current_algo = "UCS"
+    is_running = True
+    run_ucs_step()
 
 def run_dls_auto():
     global current_path, current_index, is_running, current_algo
@@ -366,27 +393,25 @@ def run_Genetic_auto():
 # Step-by-step
 # ======================
 def run_dfs_step():
-    global dfs_gen, is_running
+    global dfs_gen, is_running, after_id
     if not is_running:
         return
     try:
         event = next(dfs_gen)
         if event[0] in ("visit", "push"):
             state = event[1]
-            # Vẽ trạng thái tạm thời bên trái (C1)
             draw_state_on_canvas(C1, state, show_mobility=False)
         elif event[0] == "found":
             final_state = list(event[1])
-            # Vẽ nghiệm cuối cùng bên phải (C2)
             draw_state_on_canvas(C2, final_state, show_mobility=False)
             is_running = False
             return
-        root.after(step_delay, run_dfs_step)
+        after_id = root.after(step_delay, run_dfs_step)
     except StopIteration:
         is_running = False
 
 def run_bfs_step():
-    global bfs_gen, is_running
+    global bfs_gen, is_running, after_id
     if not is_running:
         return
     try:
@@ -399,10 +424,28 @@ def run_bfs_step():
             draw_state_on_canvas(C2, final_state, show_mobility=False)
             is_running = False
             return
-        root.after(step_delay, run_bfs_step)
+        after_id = root.after(step_delay, run_bfs_step)
     except StopIteration:
         is_running = False
 
+def run_ucs_step():
+    global ucs_gen, is_running, after_id
+    if not is_running:
+        return
+    try:
+        event = next(ucs_gen)
+        if event[0] in ("visit", "push"):
+            state, cost = event[1], event[2]
+            draw_state_on_canvas(C1, state, show_mobility=True, show_cost=cost)
+        elif event[0] == "found":
+            final_state, cost_map = list(event[1]), event[3]
+            draw_state_on_canvas(C2, final_state, show_mobility=True,
+                                 show_cost=cost_map[tuple(final_state)])
+            is_running = False
+            return
+        after_id = root.after(step_delay, run_ucs_step)
+    except StopIteration:
+        is_running = False
 
 
 # ======================
@@ -429,39 +472,60 @@ draw_labels(C1)
 draw_labels(C2)
 
 btn_frame = Frame(root, bg="white")
-btn_frame.pack(side=BOTTOM, pady=10)
+btn_frame.pack(side=BOTTOM, pady=10, fill="x")
 
-Button(btn_frame,text="🌐 BFS",font=("Arial",14,"bold"),
-       bg="#009688",fg="white",command=run_bfs_auto).grid(row=0,column=0,padx=10,pady=10)
-Button(btn_frame,text="🌲 DFS",font=("Arial",14,"bold"),
-       bg="#795548",fg="white",command=run_dfs_auto).grid(row=0,column=1,padx=10,pady=10)
-Button(btn_frame,text="💰 UCS",font=("Arial",14,"bold"),
-       bg="#3F51B5",fg="white",command=run_ucs_auto).grid(row=0,column=2,padx=10,pady=10)
-Button(btn_frame,text="DLS",font=("Arial",14,"bold"),
-       bg="#9E9E9E",fg="white",command=run_dls_auto).grid(row=0,column=3,padx=10,pady=10)
-Button(btn_frame,text="Iterative deepening DFS",font=("Arial",14,"bold"),
-       bg="#9E9E9E",fg="white",command=run_ids_auto).grid(row=0,column=4,padx=10,pady=10)
-Button(btn_frame,text="Greedy best-first search",font=("Arial",14,"bold"),
-       bg="#9E9E9E",fg="white",command=run_gbfs_auto).grid(row=0,column=5,padx=10,pady=10)
-Button(btn_frame,text="A* Search",font=("Arial",14,"bold"),
-       bg="#FF9800",fg="white",command=run_astar_auto).grid(row=0,column=6,padx=10,pady=10)
-Button(btn_frame,text="Hill Climbing",font=("Arial",14,"bold"),
-       bg="#607D8B",fg="white",command=run_hill_auto).grid(row=1,column=0,padx=10,pady=10)
-Button(btn_frame,text="Simulated Annealing",font=("Arial",14,"bold"),
-       bg="#607D8B",fg="white",command=run_simulatedAnealling_auto).grid(row=1,column=1,padx=10,pady=10)
-Button(btn_frame,text="Local Beam",font=("Arial",14,"bold"),
-       bg="#607D8B",fg="white",command=run_localBeam_auto).grid(row=1,column=2,padx=10,pady=10)
-Button(btn_frame,text="Genetic algorithm",font=("Arial",14,"bold"),
-       bg="#607D8B",fg="white",command=run_Genetic_auto).grid(row=1,column=3,padx=10,pady=10)
-Button(btn_frame,text="⏯ Resume",font=("Arial",14,"bold"),
-       bg="#4CAF50",fg="white",command=resume_run).grid(row=1,column=4,padx=10,pady=10)
-Button(btn_frame,text="⏸ Stop",font=("Arial",14,"bold"),
-       bg="#F44336",fg="white",command=stop_run).grid(row=1,column=5,padx=10,pady=10)
-Button(btn_frame,text="🧹 Clear",font=("Arial",14,"bold"),
-       bg="#9E9E9E",fg="white",command=clear_queens).grid(row=1,column=6,padx=10,pady=10)
+# Hàng 1: classical search
+Button(btn_frame, text="🌐 BFS", font=("Arial",14,"bold"),
+       bg="#009688", fg="white", width=18,
+       command=run_bfs_auto).grid(row=0, column=0, padx=5, pady=5)
+Button(btn_frame, text="🌲 DFS", font=("Arial",14,"bold"),
+       bg="#795548", fg="white", width=18,
+       command=run_dfs_auto).grid(row=0, column=1, padx=5, pady=5)
+Button(btn_frame, text="💰 UCS", font=("Arial",14,"bold"),
+       bg="#3F51B5", fg="white", width=18,
+       command=run_ucs_auto).grid(row=0, column=2, padx=5, pady=5)
+Button(btn_frame, text="DLS", font=("Arial",14,"bold"),
+       bg="#9E9E9E", fg="white", width=18,
+       command=run_dls_auto).grid(row=0, column=3, padx=5, pady=5)
+Button(btn_frame, text="IDS", font=("Arial",14,"bold"),
+       bg="#9E9E9E", fg="white", width=18,
+       command=run_ids_auto).grid(row=0, column=4, padx=5, pady=5)
 
-for i in range(7):
+# Hàng 2: heuristic search
+Button(btn_frame, text="Greedy Best-First", font=("Arial",14,"bold"),
+       bg="#9E9E9E", fg="white", width=18,
+       command=run_gbfs_auto).grid(row=1, column=0, padx=5, pady=5)
+Button(btn_frame, text="A* Search", font=("Arial",14,"bold"),
+       bg="#FF9800", fg="white", width=18,
+       command=run_astar_auto).grid(row=1, column=1, padx=5, pady=5)
+Button(btn_frame, text="Hill Climbing", font=("Arial",14,"bold"),
+       bg="#607D8B", fg="white", width=18,
+       command=run_hill_auto).grid(row=1, column=2, padx=5, pady=5)
+Button(btn_frame, text="Simulated Annealing", font=("Arial",14,"bold"),
+       bg="#607D8B", fg="white", width=18,
+       command=run_simulatedAnealling_auto).grid(row=1, column=3, padx=5, pady=5)
+
+# Hàng 3: beam, GA, control
+Button(btn_frame, text="Local Beam", font=("Arial",14,"bold"),
+       bg="#607D8B", fg="white", width=18,
+       command=run_localBeam_auto).grid(row=2, column=0, padx=5, pady=5)
+Button(btn_frame, text="Genetic Algorithm", font=("Arial",14,"bold"),
+       bg="#607D8B", fg="white", width=18,
+       command=run_Genetic_auto).grid(row=2, column=1, padx=5, pady=5)
+Button(btn_frame, text="⏯ Resume", font=("Arial",14,"bold"),
+       bg="#4CAF50", fg="white", width=18,
+       command=resume_run).grid(row=2, column=2, padx=5, pady=5)
+Button(btn_frame, text="⏸ Stop", font=("Arial",14,"bold"),
+       bg="#F44336", fg="white", width=18,
+       command=stop_run).grid(row=2, column=3, padx=5, pady=5)
+Button(btn_frame, text="🧹 Clear", font=("Arial",14,"bold"),
+       bg="#9E9E9E", fg="white", width=18,
+       command=clear_queens).grid(row=2, column=4, padx=5, pady=5)
+
+# Căn đều các cột
+for i in range(5):
     btn_frame.grid_columnconfigure(i, weight=1)
+
 
 cost_label = Label(root, text="", font=("Arial",14), fg="blue")
 cost_label.pack(pady=5)
