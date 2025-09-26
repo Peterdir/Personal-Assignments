@@ -37,7 +37,7 @@ is_running = False
 current_algo = None
 
 # Thời gian giữa các bước chạy trên C!
-step_delay = 200
+step_delay = 100
 dfs_gen = None  # biến toàn cục để lưu generator
 # Danh sách trạng thái 
 
@@ -132,6 +132,25 @@ def dfs_generator(N):
                     stack.append(new_state)
                     yield ("push", new_state)  # báo là thêm trạng thái mới vào stack
 
+def bfs_generator(N):
+    from queue import Queue
+    q = Queue()
+    q.put([])
+    parent = {tuple([]): None}
+    while not q.empty():
+        state = q.get()
+        yield ("visit", state)
+        if len(state) == N:
+            yield ("found", tuple(state), parent)
+            return
+        for col in range(N):
+            if check_queens(state, col):
+                new_state = state + [col]
+                tnew = tuple(new_state)
+                if tnew not in parent:
+                    parent[tnew] = tuple(state)
+                    q.put(new_state)
+                    yield ("push", new_state)
 # ======================
 # Hiển thị trạng thái
 # ======================
@@ -182,6 +201,13 @@ def draw_state_on_canvas(canvas, state, show_mobility=False, show_cost=None):
 # ======================
 # Auto-run
 # ======================
+def reset_before_run():
+    global is_running, current_path, current_index, current_algo
+    is_running = False
+    current_path = []
+    current_index = 0
+    current_algo = None
+
 def show_next_state():
     global current_index
     if current_index < len(current_path):
@@ -191,7 +217,19 @@ def show_next_state():
 def resume_run():
     global is_running
     is_running = True
-    run_next_state()
+
+    if current_algo == "DFS":
+        try:
+            run_dfs_step()
+        except NameError:
+            pass
+    elif current_algo == "BFS":
+        try:
+            run_bfs_step()
+        except NameError:
+            pass
+    else:
+        run_next_state()
 
 def stop_run():
     global is_running
@@ -204,28 +242,29 @@ def run_next_state():
         root.after(step_delay, run_next_state)
 
 def run_dfs_auto():
+    reset_before_run()
     global dfs_gen, current_algo, is_running
-    # 1. Tìm nghiệm hoàn chỉnh bằng dfs_queens()
     solutions = dfs_queens(N)
     if solutions:
-        final_solution = solutions[0][-1]  # lấy state cuối cùng trong nghiệm
-        draw_state_on_canvas(C2, final_solution, show_mobility=False)  # vẽ ngay nghiệm bên phải
+        final_solution = solutions[0][-1] 
+        draw_state_on_canvas(C2, final_solution, show_mobility=False)
     
-    # 2. Sau đó mới khởi động generator để chạy step-by-step cho C1
     dfs_gen = dfs_generator(N)
     current_algo = "DFS"
     is_running = True
     run_dfs_step()
 
 def run_bfs_auto():
-    global current_path, current_index, is_running, current_algo
+    reset_before_run()
+    global bfs_gen, current_algo, is_running
     solutions = bfs_queens(N)
     if solutions:
-        current_algo = "BFS"
-        current_path = solutions[0]
-        current_index = 0
-        is_running = True
-        run_next_state()
+        final_solution = solutions[0][-1]
+        draw_state_on_canvas(C2, final_solution, show_mobility=False)
+    bfs_gen = bfs_generator(N)
+    current_algo = "BFS"
+    is_running = True
+    run_bfs_step()
 
 def run_ucs_auto():
     global current_path, current_index, cost_map, is_running, current_algo
@@ -345,6 +384,25 @@ def run_dfs_step():
         root.after(step_delay, run_dfs_step)
     except StopIteration:
         is_running = False
+
+def run_bfs_step():
+    global bfs_gen, is_running
+    if not is_running:
+        return
+    try:
+        event = next(bfs_gen)
+        if event[0] in ("visit", "push"):
+            state = event[1]
+            draw_state_on_canvas(C1, state, show_mobility=False)
+        elif event[0] == "found":
+            final_state = list(event[1])
+            draw_state_on_canvas(C2, final_state, show_mobility=False)
+            is_running = False
+            return
+        root.after(step_delay, run_bfs_step)
+    except StopIteration:
+        is_running = False
+
 
 
 # ======================

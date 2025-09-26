@@ -1,8 +1,5 @@
-import numpy as np
 from queue import Queue, PriorityQueue
 from tkinter import *
-import os
-import math
 import numpy as np
 import random
 
@@ -95,7 +92,7 @@ def greedy_best_first_search():
     return []
 
 # ======================
-# DLS (Depth - limited search)
+# DLS (Depth - limited search) and Iterative deepening search
 # ======================
 def iterative_deepening_search(N):
     for depth in range(N + 1):
@@ -235,7 +232,7 @@ def astar_search(N):
 # ======================
 # Hill-climbing search
 # ======================
-def heuristic_hillClimbing(state):
+def heuristic_conflict(state):
     n = len(state)
     result = 0
     for i in range(n):
@@ -258,12 +255,12 @@ def generator_state(state):
 
 def hillClimbing_search():
     current_state = np.random.choice(np.arange(0, N), size=N, replace=False)
-    current_heuristic = heuristic_hillClimbing(current_state)
+    current_heuristic = heuristic_conflict(current_state)
 
     while True:
         successors = generator_state(current_state)
-        best_state = min(successors, key=heuristic_hillClimbing)
-        best_heuristic = heuristic_hillClimbing(best_state)
+        best_state = min(successors, key=heuristic_conflict)
+        best_heuristic = heuristic_conflict(best_state)
 
         if best_heuristic >= current_heuristic:
             break
@@ -279,20 +276,12 @@ def hillClimbing_search():
 # ======================
 # Simulated Annealing
 # ======================
-def heuristic_simulatedAnnealing(state):
-    n = len(state)
-    result = 0
-    for i in range(n):
-        for j in range(i + 1, n):
-            if state[i] == state[j] or abs(state[i] - state[j]) == abs(i - j):
-                result += 1
-    return result
 
 def simulated_annealing():
     T = 1
     cooling = 0.95
     current_state = np.random.choice(np.arange(0, N), size=N, replace=False).tolist()
-    current_heuristic = heuristic_simulatedAnnealing(current_state)
+    current_heuristic = heuristic_conflict(current_state)
 
     while T > 1e-6:
         if current_heuristic == 0:
@@ -301,7 +290,7 @@ def simulated_annealing():
         successors = generator_state(current_state)
 
         next_state = random.choice(successors)
-        next_heuristic = heuristic_simulatedAnnealing(next_state)
+        next_heuristic = heuristic_conflict(next_state)
 
         deltaE = next_heuristic - current_heuristic
 
@@ -333,15 +322,13 @@ def local_beam_search(max_iters=1000):
     for _ in range(max_iters):
         new_beam = []
 
-        # Mỗi cha đóng góp ít nhất 1 successor tốt nhất
         for state in beam:
             successors = generator_state(state)
             if not successors:
                 continue
-            best_child = min(successors, key=heuristic_hillClimbing)
-            h = heuristic_hillClimbing(best_child)
+            best_child = min(successors, key=heuristic_conflict)
+            h = heuristic_conflict(best_child)
 
-            # goal test
             if h == 0:
                 return best_child, 0
 
@@ -350,21 +337,17 @@ def local_beam_search(max_iters=1000):
                 best_h = h
                 best_overall = best_child.copy()
 
-        # Nếu đã đủ k trạng thái thì dừng chọn thêm
         if len(new_beam) >= k:
             beam = new_beam[:k]
             continue
 
-        # Gom tất cả successor để chọn thêm
         candidates = []
         for state in beam:
             candidates.extend(generator_state(state))
 
-        # Bỏ những state đã nằm trong new_beam
         candidates = [c for c in candidates if c not in new_beam]
 
-        # Sắp xếp và lấy thêm cho đủ k
-        candidates.sort(key=lambda st: heuristic_hillClimbing(st))
+        candidates.sort(key=lambda st: heuristic_conflict(st))
         need = k - len(new_beam)
         new_beam.extend(candidates[:need])
 
@@ -408,7 +391,7 @@ def genetic_algorithm(pop_size=20, max_generations=1000):
     best_fit = float('inf')
 
     for gen in range(max_generations):
-        fitnesses = [heuristic_hillClimbing(ind) for ind in population]
+        fitnesses = [heuristic_conflict(ind) for ind in population]
 
         # Kiểm tra có giải pháp tối ưu
         if min(fitnesses) == 0:
@@ -432,3 +415,23 @@ def genetic_algorithm(pop_size=20, max_generations=1000):
             best_state = population[fitnesses.index(min_fit)]
 
     return best_state, best_fit
+
+
+# ======================
+# Genetic Algorithm
+# ======================
+def AND_OR_SEARCH():
+    start = []
+    path = []
+    OR_SEARCH(start, GOAL_STATE, path)
+def OR_SEARCH(state, goal, path):
+    # Chọn sinh theo cột
+    if state == goal:
+        return goal
+    if state in path:
+        return "failure"
+
+    pass
+
+def AND_SEARCH(start, goal, path):
+    pass
