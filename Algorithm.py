@@ -107,7 +107,7 @@ def depth_limited_search(N, limit):
 
 def recursive_DLS(state, parent, N, limit):
     if len(state) == N:
-        return reconstruct_path(parent, tuple(state))
+        return [reconstruct_path(parent, tuple(state))]
     elif limit == 0:
         return "cutoff"
     else:
@@ -417,18 +417,33 @@ def genetic_algorithm(pop_size=20, max_generations=1000):
 # ======================
 # Genetic Algorithm
 # ======================
-def AND_OR_SEARCH():
-    start = []
-    path = []
-    OR_SEARCH(start, GOAL_STATE, path)
+def actions(state):
+    return [col for col in range(N) if check_queens(state, col)]
+
+def result(state, col):
+    return state + [col]
+
+def AND_OR_SEARCH(start, goal):
+    return OR_SEARCH(start, goal, path=[])
+
 def OR_SEARCH(state, goal, path):
-    # Chọn sinh theo cột
     if state == goal:
-        return goal
+        return state, [state]   # trả về state + path chứa state
     if state in path:
-        return "failure"
+        return "failure", []
 
-    pass
+    for action in actions(state):
+        result_state = result(state, action)
+        solution, subpath = AND_SEARCH([result_state], goal, path + [state])
+        if solution != "failure":
+            return solution, [state] + subpath
+    return "failure", []
 
-def AND_SEARCH(start, goal, path):
-    pass
+def AND_SEARCH(states, goal, path):
+    plans = []
+    for s in states:
+        solution, subpath = OR_SEARCH(s, goal, path)
+        if solution == "failure":
+            return "failure", []
+        plans.extend(subpath)   # nối đường đi
+    return solution, plans

@@ -42,6 +42,7 @@ dfs_gen = None
 bfs_gen = None
 ucs_gen = None
 dls_gen = None
+andor_gen = None
 # Danh sách trạng thái 
 
 # ======================
@@ -180,7 +181,7 @@ def dls_generator(N, limit):
     stack = [([], 0)]
     parent = {tuple([]): None}
 
-    while stack is not None:
+    while stack:
         state, depth = stack.pop()
         yield("visit", state)
         if len(state) == N:
@@ -196,6 +197,37 @@ def dls_generator(N, limit):
                         stack.append((new_state, depth + 1))
                         yield("push", new_state)
 
+def andor_generator(N):
+    parent = {tuple([]): None}
+
+    def or_search(state, path):
+        yield ("visit", state)
+        if state == GOAL_STATE:
+            yield ("found", tuple(state), parent)
+            return True
+
+        if tuple(state) in path:
+            return False
+
+        for action in actions(state):
+            new_state = result(state, action)
+            tnew = tuple(new_state)
+            if tnew not in parent:
+                parent[tnew] = tuple(state)
+                yield ("push", new_state)
+                ok = yield from and_search([new_state], path + [tuple(state)])
+                if ok:
+                    return True
+        return False
+
+    def and_search(states, path):
+        for s in states:
+            ok = yield from or_search(s, path)
+            if not ok:
+                return False
+        return True
+
+    yield from or_search([], [])
 # ======================
 # Hiển thị trạng thái
 # ======================
@@ -331,6 +363,10 @@ def run_ucs_auto():
 def run_dls_auto():
     reset_before_run()
     global dls_gen, current_algo, is_running
+    solutions = depth_limited_search(N, 8)
+    if solutions:
+        final_solution = solutions[0][-1]
+        draw_state_on_canvas(C2, final_solution)
     dls_gen = dls_generator(N, 8) # Giới hạn độ sâu là 8
     current_algo = "DLS"
     is_running = True
@@ -411,6 +447,17 @@ def run_Genetic_auto():
         is_running = True
         run_next_state()
 
+def run_andor_auto():
+    reset_before_run()
+    global andor_gen, current_algo, is_running
+    solution_goal, solution_path = AND_OR_SEARCH([], GOAL_STATE)
+    if solution_path:
+       draw_state_on_canvas(C2, solution_path[-1], show_mobility=False)
+    andor_gen = andor_generator(N)
+    current_algo = "AND-OR (gen)"
+    is_running = True
+    run_andor_step()
+
 # ======================
 # Step-by-step
 # ======================
@@ -486,6 +533,29 @@ def run_dls_step():
         after_id = root.after(step_delay, run_dls_step)
     except StopIteration:
         is_running = False
+
+def run_andor_step():
+    global andor_gen, is_running, after_id
+    if not is_running or andor_gen is None:
+        return
+    try:
+        event = next(andor_gen)
+        if event[0] == "visit":
+            state = event[1]
+            draw_state_on_canvas(C1, state, show_mobility=False)
+        elif event[0] == "push":
+            state = event[1]
+            draw_state_on_canvas(C1, state, show_mobility=False)
+        elif event[0] == "found":
+            final_state = list(event[1])
+            parent = event[2]
+            # vẽ final lên C2
+            draw_state_on_canvas(C2, final_state, show_mobility=False)
+            is_running = False
+            return
+        after_id = root.after(step_delay, run_andor_step)
+    except StopIteration:
+        is_running = False
 # ======================
 # Load ảnh hậu
 # ======================
@@ -559,6 +629,9 @@ Button(btn_frame, text="⏸ Stop", font=("Arial",14,"bold"),
 Button(btn_frame, text="🧹 Clear", font=("Arial",14,"bold"),
        bg="#9E9E9E", fg="white", width=18,
        command=clear_queens).grid(row=2, column=4, padx=5, pady=5)
+Button(btn_frame, text="AND-OR", font=("Arial",14,"bold"),
+       bg="#FF5722", fg="white", width=18,
+       command=run_andor_auto).grid(row=2, column=2, padx=5, pady=5)
 
 # Căn đều các cột
 for i in range(5):
