@@ -415,7 +415,7 @@ def genetic_algorithm(pop_size=20, max_generations=1000):
 
 
 # ======================
-# Genetic Algorithm
+# AND OR SEARCH
 # ======================
 def actions(state):
     return [col for col in range(N) if check_queens(state, col)]
@@ -428,7 +428,7 @@ def AND_OR_SEARCH(start, goal):
 
 def OR_SEARCH(state, goal, path):
     if state == goal:
-        return state, [state]   # trả về state + path chứa state
+        return state, [state] 
     if state in path:
         return "failure", []
 
@@ -445,5 +445,47 @@ def AND_SEARCH(states, goal, path):
         solution, subpath = OR_SEARCH(s, goal, path)
         if solution == "failure":
             return "failure", []
-        plans.extend(subpath)   # nối đường đi
+        plans.extend(subpath)  
     return solution, plans
+
+# ======================
+# Searching with No Observation
+# ======================
+def sensorless_search_queens():
+    start_belief = tuple([()])  
+    frontier = Queue()
+    frontier.put(start_belief)
+
+    parent = {start_belief: None}
+    action_parent = {start_belief: None}
+
+    N = 8
+    def isGoal(state, N):
+        return len(state) == N
+
+    while not frontier.empty():
+        belief = frontier.get()
+
+        if all(isGoal(s) for s in belief):
+            path = []
+            b = belief
+            while b is not None:
+                a = action_parent[b]
+                if a is not None:
+                    path.append(a)
+                b = parent[b]
+            return path[::-1], belief
+
+        for col in range(N):
+            new_belief = []
+            for s in belief:
+                if check_queens(s, col):
+                    new_belief.append(s + (col,))
+            if new_belief:
+                new_belief = tuple(new_belief)
+                if new_belief not in parent:
+                    parent[new_belief] = belief
+                    action_parent[new_belief] = col
+                    frontier.put(new_belief)
+
+    return [], ()
