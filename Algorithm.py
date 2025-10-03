@@ -466,7 +466,7 @@ def sensorless_search_queens():
     while not frontier.empty():
         belief = frontier.get()
 
-        if all(isGoal(s) for s in belief):
+        if all(isGoal(s, N) for s in belief):
             path = []
             b = belief
             while b is not None:
