@@ -55,6 +55,8 @@ Hill_gen = None
 sa_gen = None
 localBeam_gen = None
 genetic_gen = None
+sensorless_gen = None
+partial_obs_gen = None
 
 # ======================
 # Hàm vẽ bàn cờ & tiện ích
@@ -459,6 +461,48 @@ def sensorless_generator(N=8):
 
     yield ("notfound", [], ())
 
+def partial_observation_generator(N=8):
+    initial_state=[4]
+    start_belief = tuple([tuple(initial_state)])  
+    frontier = Queue()
+    frontier.put(start_belief)
+
+    parent = {start_belief: None}
+    action_parent = {start_belief: None}
+
+    def isGoal(state, N):
+        return len(state) == N
+
+    while not frontier.empty():
+        belief = frontier.get()
+        yield ("visit", belief)
+
+        if all(isGoal(s, N) for s in belief):
+            path = []
+            b = belief
+            while b is not None:
+                a = action_parent[b]
+                if a is not None:
+                    path.append(a)
+                b = parent[b]
+            yield ("found", path[::-1], belief)
+            return
+
+        for col in range(N):
+            new_belief = []
+            for s in belief:
+                if check_queens(s, col):  
+                    new_belief.append(s + (col,))
+            if new_belief:
+                new_belief = tuple(new_belief)
+                if new_belief not in parent:
+                    parent[new_belief] = belief
+                    action_parent[new_belief] = col
+                    frontier.put(new_belief)
+                    yield ("push", new_belief, col)
+
+    yield ("notfound", [], ())
+
 # ======================
 # Hiển thị trạng thái
 # ======================
@@ -722,6 +766,19 @@ def run_sensorless_auto():
     current_algo = "Sensorless Search"
     is_running = True
     run_sensorless_step()
+
+def run_partialObs_auto():
+    global partial_obs_gen, current_algo, is_running
+    reset_before_run()
+    path, final_belief = partial_observable_search_queens()
+
+    if path:
+        draw_state_on_canvas(C2, final_belief[0], show_mobility=False)
+
+    partial_obs_gen = partial_observation_generator(N)
+    current_algo = "Partial Observation Search"
+    is_running = True
+    run_partialObs_step()
 
 # ======================
 # Step-by-step
@@ -987,6 +1044,30 @@ def run_sensorless_step():
     except StopIteration:
         is_running = False
 
+def run_partialObs_step():
+    global partial_obs_gen, is_running, after_id
+    if not is_running or partial_obs_gen is None:
+        return
+    try:
+        event = next(partial_obs_gen)
+        if event[0] == "visit":
+            belief = event[1]
+            if belief:  
+                draw_state_on_canvas(C1, belief[0], show_mobility=False)
+        elif event[0] == "push":
+            belief, col = event[1], event[2]
+            if belief:
+                draw_state_on_canvas(C1, belief[0], show_mobility=False)
+        elif event[0] == "found":
+            path, final_belief = event[1], event[2]
+            if final_belief:
+                draw_state_on_canvas(C2, final_belief[0], show_mobility=False)
+            is_running = False
+            return
+        after_id = root.after(step_delay, run_partialObs_step)
+    except StopIteration:
+        is_running = False
+
 # ======================
 # Load ảnh hậu
 # ======================
@@ -1030,6 +1111,7 @@ Button(btn_frame, text="IDS", font=("Arial",14,"bold"),
        bg="#9E9E9E", fg="white", width=18,
        command=run_ids_auto).grid(row=0, column=4, padx=5, pady=5)
 
+
 # Hàng 2: heuristic search
 Button(btn_frame, text="Greedy Best-First", font=("Arial",14,"bold"),
        bg="#9E9E9E", fg="white", width=18,
@@ -1057,6 +1139,9 @@ Button(btn_frame, text="AND-OR", font=("Arial",14,"bold"),
 Button(btn_frame, text="Sensorless Search", font=("Arial",14,"bold"),
        bg="#673AB7", fg="white", width=18,
        command=run_sensorless_auto).grid(row=2, column=3, padx=5, pady=5)
+Button(btn_frame, text="Partial Obs Search", font=("Arial",14,"bold"),
+       bg="#9C27B0", fg="white", width=18,
+       command=run_partialObs_auto).grid(row=2, column=4, padx=5, pady=5)
 
 # Hàng 4: Control
 Button(btn_frame, text="⏯ Resume", font=("Arial",14,"bold"),

@@ -489,3 +489,46 @@ def sensorless_search_queens():
                     frontier.put(new_belief)
 
     return [], ()
+
+# ======================
+# Searching with partial Observation
+# ======================
+def partial_observable_search_queens():
+    initial_state = [4]
+
+    start_belief = tuple([tuple(initial_state)]) 
+    frontier = Queue()
+    frontier.put(start_belief)
+
+    parent = {start_belief: None}
+    action_parent = {start_belief: None}
+
+    def isGoal(state):
+        return len(state) == N
+
+    while not frontier.empty():
+        belief = frontier.get()
+
+        if all(isGoal(s) for s in belief):
+            b = belief
+            path = []
+            while b is not None:
+                path.append(list(b))
+                b = parent[b]
+            return path[::-1], belief  
+
+        for col in range(N):
+            new_belief = []
+            for s in belief:
+                if len(s) < N and check_queens(s, col):
+                    candidate = s + (col,)
+                    new_belief.append(candidate)
+
+            if new_belief:
+                new_belief = tuple(new_belief)
+                if new_belief not in parent:
+                    parent[new_belief] = belief
+                    action_parent[new_belief] = col
+                    frontier.put(new_belief)
+
+    return [], () 
