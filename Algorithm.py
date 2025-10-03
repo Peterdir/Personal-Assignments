@@ -532,3 +532,26 @@ def partial_observable_search_queens():
                     frontier.put(new_belief)
 
     return [], () 
+
+# ======================
+# Backtracking Search
+# ======================
+def backtracking_search(N):
+    def backtrack(state, parent):
+        if len(state) == N:
+            return [reconstruct_path(parent, tuple(state))]
+
+        for col in range(N):
+            if check_queens(state, col):
+                new_state = state + [col]
+                tnew = tuple(new_state)
+                if tnew not in parent:
+                    parent[tnew] = tuple(state)
+                result = backtrack(new_state, parent)
+                if result != "failure":
+                    return result
+        return "failure"
+
+    start = []
+    parent = {tuple(start): None}
+    return backtrack(start, parent)

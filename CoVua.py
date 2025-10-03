@@ -503,6 +503,20 @@ def partial_observation_generator(N=8):
 
     yield ("notfound", [], ())
 
+def backtracking_generator(N):
+    def backtrack(state):
+        yield state  
+
+        if len(state) == N:
+            return  
+
+        for col in range(N):
+            if check_queens(state, col):
+                new_state = state + [col]
+                yield from backtrack(new_state)
+
+    return backtrack([])
+
 # ======================
 # Hiển thị trạng thái
 # ======================
@@ -779,6 +793,20 @@ def run_partialObs_auto():
     current_algo = "Partial Observation Search"
     is_running = True
     run_partialObs_step()
+
+def run_backtracking_auto():
+    global backtracking_gen, current_algo, is_running
+    reset_before_run()
+    
+    solution = backtracking_search(N)
+    
+    if solution:
+        draw_state_on_canvas(C2, solution[0][-1], show_mobility=False)
+
+    backtracking_gen = backtracking_generator(N)
+    current_algo = "Backtracking Search"
+    is_running = True
+    run_backtracking_step()
 
 # ======================
 # Step-by-step
@@ -1068,6 +1096,23 @@ def run_partialObs_step():
     except StopIteration:
         is_running = False
 
+def run_backtracking_step():
+    global backtracking_gen, is_running, after_id
+    if not is_running or backtracking_gen is None:
+        return
+    try:
+        state = next(backtracking_gen)
+        draw_state_on_canvas(C1, state, show_mobility=False)
+
+        if len(state) == N:
+            draw_state_on_canvas(C2, state, show_mobility=False)
+            is_running = False
+            return
+
+        after_id = root.after(step_delay, run_backtracking_step)
+    except StopIteration:
+        is_running = False
+
 # ======================
 # Load ảnh hậu
 # ======================
@@ -1142,6 +1187,9 @@ Button(btn_frame, text="Sensorless Search", font=("Arial",14,"bold"),
 Button(btn_frame, text="Partial Obs Search", font=("Arial",14,"bold"),
        bg="#9C27B0", fg="white", width=18,
        command=run_partialObs_auto).grid(row=2, column=4, padx=5, pady=5)
+Button(btn_frame, text="Backtracking", font=("Arial",14,"bold"),
+       bg="#4E342E", fg="white", width=18,
+       command=run_backtracking_auto).grid(row=2, column=5, padx=5, pady=5)
 
 # Hàng 4: Control
 Button(btn_frame, text="⏯ Resume", font=("Arial",14,"bold"),
