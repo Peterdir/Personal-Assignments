@@ -517,6 +517,34 @@ def backtracking_generator(N):
 
     return backtrack([])
 
+def forward_checking_generator(N):
+    def fc(state, domains):
+        yield ("visit", state)
+        
+        if len(state) == N:
+            yield ("found", tuple(state))
+            return
+        
+        row = len(state)
+        for col in range(N):
+            if col in domains[row]:
+                new_domains = [d.copy() for d in domains]
+                
+                new_state = state + [col]
+                
+                consistent = True
+                for r in range(row + 1, N):
+                    new_domains[r] -= {col, col + (r - row), col - (r - row)}
+                    if not new_domains[r]:
+                        consistent = False
+                        break
+                
+                if consistent:
+                    yield from fc(new_state, new_domains)
+    
+    domains = [set(range(N)) for _ in range(N)]
+    yield from fc([], domains)
+
 # ======================
 # Hiển thị trạng thái
 # ======================
@@ -807,6 +835,19 @@ def run_backtracking_auto():
     current_algo = "Backtracking Search"
     is_running = True
     run_backtracking_step()
+
+def run_forward_checking_auto():
+    global forward_gen, current_algo, is_running
+    reset_before_run()
+    solution = forward_checking_search(N)
+
+    if solution:
+        draw_state_on_canvas(C2, solution[-1])
+
+    forward_gen = forward_checking_generator(N)
+    current_algo = "Forward Checking"
+    is_running = True
+    run_forward_checking_step()
 
 # ======================
 # Step-by-step
@@ -1113,6 +1154,24 @@ def run_backtracking_step():
     except StopIteration:
         is_running = False
 
+def run_forward_checking_step():
+    global forward_gen, is_running, after_id
+    if not is_running or forward_gen is None:
+        return
+    try:
+        event = next(forward_gen)
+        if event[0] == "visit":
+            state = event[1]
+            draw_state_on_canvas(C1, state, show_mobility=False)
+        elif event[0] == "found":
+            final_state = list(event[1])
+            draw_state_on_canvas(C2, final_state, show_mobility=False)
+            is_running = False
+            return
+        after_id = root.after(step_delay, run_forward_checking_step)
+    except StopIteration:
+        is_running = False
+
 # ======================
 # Load ảnh hậu
 # ======================
@@ -1137,78 +1196,60 @@ draw_labels(C1)
 draw_labels(C2)
 
 btn_frame = Frame(root, bg="white")
-btn_frame.pack(side=BOTTOM, pady=10, fill="x")
+btn_frame.pack(side=BOTTOM, pady=5, fill="x")
 
 # Hàng 1: classical search
 Button(btn_frame, text="BFS", font=("Arial",14,"bold"),
-       bg="#009688", fg="white", width=18,
-       command=run_bfs_auto).grid(row=0, column=0, padx=5, pady=5)
+       bg="#009688", fg="white", command=run_bfs_auto).grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="DFS", font=("Arial",14,"bold"),
-       bg="#795548", fg="white", width=18,
-       command=run_dfs_auto).grid(row=0, column=1, padx=5, pady=5)
+       bg="#795548", fg="white", command=run_dfs_auto).grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="UCS", font=("Arial",14,"bold"),
-       bg="#3F51B5", fg="white", width=18,
-       command=run_ucs_auto).grid(row=0, column=2, padx=5, pady=5)
+       bg="#3F51B5", fg="white", command=run_ucs_auto).grid(row=0, column=2, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="DLS", font=("Arial",14,"bold"),
-       bg="#9E9E9E", fg="white", width=18,
-       command=run_dls_auto).grid(row=0, column=3, padx=5, pady=5)
+       bg="#9E9E9E", fg="white", command=run_dls_auto).grid(row=0, column=3, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="IDS", font=("Arial",14,"bold"),
-       bg="#9E9E9E", fg="white", width=18,
-       command=run_ids_auto).grid(row=0, column=4, padx=5, pady=5)
-
+       bg="#9E9E9E", fg="white", command=run_ids_auto).grid(row=0, column=4, padx=5, pady=5, sticky="ew")
 
 # Hàng 2: heuristic search
 Button(btn_frame, text="Greedy Best-First", font=("Arial",14,"bold"),
-       bg="#9E9E9E", fg="white", width=18,
-       command=run_gbfs_auto).grid(row=1, column=0, padx=5, pady=5)
+       bg="#9E9E9E", fg="white", command=run_gbfs_auto).grid(row=1, column=0, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="A* Search", font=("Arial",14,"bold"),
-       bg="#FF9800", fg="white", width=18,
-       command=run_astar_auto).grid(row=1, column=1, padx=5, pady=5)
+       bg="#FF9800", fg="white", command=run_astar_auto).grid(row=1, column=1, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="Hill Climbing", font=("Arial",14,"bold"),
-       bg="#607D8B", fg="white", width=18,
-       command=run_hill_auto).grid(row=1, column=2, padx=5, pady=5)
+       bg="#607D8B", fg="white", command=run_hill_auto).grid(row=1, column=2, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="Simulated Annealing", font=("Arial",14,"bold"),
-       bg="#607D8B", fg="white", width=18,
-       command=run_sa_auto).grid(row=1, column=3, padx=5, pady=5)
+       bg="#607D8B", fg="white", command=run_sa_auto).grid(row=1, column=3, padx=5, pady=5, sticky="ew")
 
 # Hàng 3: Local & Advanced
 Button(btn_frame, text="Local Beam", font=("Arial",14,"bold"),
-       bg="#607D8B", fg="white", width=18,
-       command=run_localBeam_auto).grid(row=2, column=0, padx=5, pady=5)
+       bg="#607D8B", fg="white", command=run_localBeam_auto).grid(row=2, column=0, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="Genetic Algorithm", font=("Arial",14,"bold"),
-       bg="#607D8B", fg="white", width=18,
-       command=run_Genetic_auto).grid(row=2, column=1, padx=5, pady=5)
+       bg="#607D8B", fg="white", command=run_Genetic_auto).grid(row=2, column=1, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="AND-OR", font=("Arial",14,"bold"),
-       bg="#FF5722", fg="white", width=18,
-       command=run_andor_auto).grid(row=2, column=2, padx=5, pady=5)
+       bg="#FF5722", fg="white", command=run_andor_auto).grid(row=2, column=2, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="Sensorless Search", font=("Arial",14,"bold"),
-       bg="#673AB7", fg="white", width=18,
-       command=run_sensorless_auto).grid(row=2, column=3, padx=5, pady=5)
+       bg="#673AB7", fg="white", command=run_sensorless_auto).grid(row=2, column=3, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="Partial Obs Search", font=("Arial",14,"bold"),
-       bg="#9C27B0", fg="white", width=18,
-       command=run_partialObs_auto).grid(row=2, column=4, padx=5, pady=5)
+       bg="#9C27B0", fg="white", command=run_partialObs_auto).grid(row=2, column=4, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="Backtracking", font=("Arial",14,"bold"),
-       bg="#4E342E", fg="white", width=18,
-       command=run_backtracking_auto).grid(row=2, column=5, padx=5, pady=5)
+       bg="#4E342E", fg="white", command=run_backtracking_auto).grid(row=2, column=5, padx=5, pady=5, sticky="ew")
+Button(btn_frame, text="Forward Checking", font=("Arial",14,"bold"),
+       bg="#FF5722", fg="white", command=run_forward_checking_auto).grid(row=2, column=6, padx=5, pady=5, sticky="ew")
 
 # Hàng 4: Control
 Button(btn_frame, text="⏯ Resume", font=("Arial",14,"bold"),
-       bg="#4CAF50", fg="white", width=18,
-       command=resume_run).grid(row=3, column=0, padx=5, pady=5)
+       bg="#4CAF50", fg="white", command=resume_run).grid(row=1, column=4, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="⏸ Stop", font=("Arial",14,"bold"),
-       bg="#F44336", fg="white", width=18,
-       command=stop_run).grid(row=3, column=1, padx=5, pady=5)
+       bg="#F44336", fg="white", command=stop_run).grid(row=1, column=5, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="🧹 Clear", font=("Arial",14,"bold"),
-       bg="#9E9E9E", fg="white", width=18,
-       command=clear_queens).grid(row=3, column=2, padx=5, pady=5)
+       bg="#9E9E9E", fg="white", command=clear_queens).grid(row=1, column=6, padx=5, pady=5, sticky="ew")
 
-# Căn đều các cột (4 cột là đủ)
-for i in range(4):
+# Cấu hình cột để các nút chia đều
+for i in range(7):
     btn_frame.grid_columnconfigure(i, weight=1)
 
 # Nhãn hiển thị kết quả / cost
 cost_label = Label(root, text="", font=("Arial",14), fg="blue")
 cost_label.pack(pady=5)
-
 
 root.mainloop()

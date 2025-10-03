@@ -548,10 +548,46 @@ def backtracking_search(N):
                 if tnew not in parent:
                     parent[tnew] = tuple(state)
                 result = backtrack(new_state, parent)
-                if result != "failure":
+                if result is not None:  
                     return result
-        return "failure"
+        return None 
 
     start = []
     parent = {tuple(start): None}
     return backtrack(start, parent)
+
+# ======================
+# Forward Checking Search
+# ======================
+def forward_checking_search(N):
+    def forward_check(state, domains, parent):
+        if len(state) == N:
+            return reconstruct_path(parent, tuple(state))
+
+        row = len(state)
+        for col in domains[row]:
+            new_state = state + [col]
+
+            new_domains = [d.copy() for d in domains]
+
+            consistent = True
+            for r in range(row + 1, N):
+                new_domains[r] -= {col, col + (r - row), col - (r - row)}
+                if not new_domains[r]:
+                    consistent = False
+                    break
+
+            if consistent:
+                tnew = tuple(new_state)
+                if tnew not in parent:
+                    parent[tnew] = tuple(state)
+                result = forward_check(new_state, new_domains, parent)
+                if result is not None:
+                    return result
+
+        return None
+
+    domains = [set(range(N)) for _ in range(N)]
+    start = []
+    parent = {tuple(start): None}
+    return forward_check(start, domains, parent)
