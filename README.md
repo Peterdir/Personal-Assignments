@@ -9,9 +9,9 @@
   - Bên phải (**C2**): hiển thị lời giải cuối cùng.  
 - **Thanh nút chức năng**:  
   - **Nhóm thuật toán tìm kiếm cổ điển (Classical Search)**  
-    - 🌐 **BFS**  
-    - 🌲 **DFS**  
-    - 💰 **UCS** (có hiển thị *mobility-based cost*)  
+    - **BFS**  
+    - **DFS**  
+    - **UCS** (có hiển thị *mobility-based cost*)  
     - **DLS**  
     - **IDS**  
   - **Nhóm thuật toán heuristic (Informed Search)**  
@@ -22,10 +22,18 @@
   - **Nhóm local search nâng cao & điều khiển**  
     - **Local Beam Search**  
     - **Genetic Algorithm**  
+- **Nhóm thuật toán CSP / ràng buộc (Constraint Satisfaction Problem)**  
+    - **Backtracking Search**  
+    - **Forward Checking**  
+    - **AC-3 (Arc Consistency #3)**  
+  - **Nhóm nâng cao / điều khiển**  
+    - **AND-OR Search**  
+    - **Sensorless Search (No Observation)**  
+    - **Partial Observable Search**  
     - ⏯ **Resume** (tiếp tục chạy)  
     - ⏸ **Stop** (dừng chạy)  
     - 🧹 **Clear** (xóa bàn cờ, reset trạng thái)  
-- **Thanh thông tin Cost**: hiển thị chi phí lời giải (chỉ dùng cho UCS/A\*).  
+- **Thanh thông tin Cost**: hiển thị chi phí lời giải (*dành cho UCS/A\**).
 
 ## 🔍 Các thuật toán đã hỗ trợ  
 ### Thuật toán tìm kiếm không thông tin (Uninformed Search)  
@@ -44,6 +52,16 @@
 - Simulated Annealing  
 - Local Beam Search  
 - Genetic Algorithm
+
+### 4️⃣ Thuật toán CSP (Constraint Satisfaction Problem)  
+- Backtracking Search  
+- Forward Checking  
+- AC-3 (Arc Consistency #3)  
+
+### 5️⃣ Thuật toán nâng cao  
+- AND-OR Search  
+- Sensorless Search (No Observation)  
+- Partial Observable Search  
 
 ## 💻 Cách chạy chương trình
 >Yêu cầu:

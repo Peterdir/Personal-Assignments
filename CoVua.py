@@ -57,6 +57,7 @@ localBeam_gen = None
 genetic_gen = None
 sensorless_gen = None
 partial_obs_gen = None
+ac3_gen = None
 
 # ======================
 # Hàm vẽ bàn cờ & tiện ích
@@ -126,6 +127,21 @@ def table_operator():
             color = "#873e23" if (i + j) % 2 == 0 else "#eab676"
             C2.create_rectangle(x1, y1, x2, y2, fill=color)
 
+def draw_domains_on_canvas(canvas, domains):
+    canvas.delete("all")
+    draw_labels(canvas)
+    for i in range(N):
+        for j in range(N):
+            x1 = size * j + offset
+            y1 = size * i
+            x2 = x1 + size
+            y2 = y1 + size
+            color = "#873e23" if (i + j) % 2 == 0 else "#eab676"
+            if j in domains[i]:
+                canvas.create_rectangle(x1, y1, x2, y2, fill="#90EE90", outline="black")
+            else:
+                canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline=color)
+        canvas.create_text(size_col, size*i + size/2, text=f"X{i}", font=("Arial", 12, "bold"))
 
 
 # ======================
@@ -545,6 +561,63 @@ def forward_checking_generator(N):
     domains = [set(range(N)) for _ in range(N)]
     yield from fc([], domains)
 
+def ac3_generator(N):
+    """
+    Generator mô phỏng thuật toán AC-3 cho bài toán N-Queens.
+    - Mỗi biến Xi ứng với hàng i.
+    - Domain của Xi là {0, 1, ..., N-1}.
+    - Constraint: Không cùng cột hoặc cùng đường chéo.
+    """
+    from collections import deque
+    
+    # Khởi tạo domain cho từng biến
+    domains = {i: set(range(N)) for i in range(N)}
+    yield ("init", domains.copy())
+
+    # Tạo danh sách tất cả các cung (Xi, Xj)
+    queue = deque([(i, j) for i in range(N) for j in range(N) if i != j])
+
+    def is_consistent(xi, vi, xj, vj):
+        """Kiểm tra xem giá trị vi và vj có thỏa mãn ràng buộc không."""
+        if vi == vj:  # cùng cột
+            return False
+        if abs(vi - vj) == abs(xi - xj):  # cùng đường chéo
+            return False
+        return True
+
+    def revise(xi, xj):
+        """Thực hiện bước revise(Xi, Xj)."""
+        revised = False
+        to_remove = set()
+        for vi in domains[xi]:
+            # Nếu không có giá trị nào trong domain[xj] tương thích, xóa vi
+            if not any(is_consistent(xi, vi, xj, vj) for vj in domains[xj]):
+                to_remove.add(vi)
+        if to_remove:
+            domains[xi] -= to_remove
+            revised = True
+        return revised
+
+    # Bắt đầu vòng lặp chính
+    while queue:
+        xi, xj = queue.popleft()
+        yield ("visit", xi, xj, domains.copy())
+
+        if revise(xi, xj):
+            yield ("revise", xi, xj, domains.copy())
+            if not domains[xi]:
+                yield ("fail", xi, domains.copy())
+                return
+            # Nếu Xi bị thay đổi, thêm lại tất cả (Xk, Xi)
+            for xk in range(N):
+                if xk != xi and xk != xj:
+                    queue.append((xk, xi))
+                    yield ("enqueue", xk, xi)
+    
+    # Nếu hoàn tất mà không domain nào rỗng → thành công
+    yield ("found", domains.copy())
+
+
 # ======================
 # Hiển thị trạng thái
 # ======================
@@ -848,6 +921,14 @@ def run_forward_checking_auto():
     current_algo = "Forward Checking"
     is_running = True
     run_forward_checking_step()
+
+def run_ac3_auto():
+    global ac3_gen, current_algo, is_running
+    reset_before_run()
+    ac3_gen = ac3_generator(N)
+    current_algo = "AC-3"
+    is_running = True
+    run_ac3_step()
 
 # ======================
 # Step-by-step
@@ -1172,6 +1253,33 @@ def run_forward_checking_step():
     except StopIteration:
         is_running = False
 
+def run_ac3_step():
+    global ac3_gen, is_running, after_id
+    if not is_running:
+        return
+    try:
+        event = next(ac3_gen)
+        etype = event[0]
+
+        if etype in ("init", "visit", "revise"):
+            domains = event[-1]
+            draw_domains_on_canvas(C1, domains)
+        elif etype == "found":
+            domains = event[1]
+            draw_domains_on_canvas(C2, domains)
+            is_running = False
+            return
+        elif etype == "fail":
+            domains = event[2]
+            draw_domains_on_canvas(C2, domains)
+            is_running = False
+            return
+
+        after_id = root.after(step_delay, run_ac3_step)
+    except StopIteration:
+        is_running = False
+
+
 # ======================
 # Load ảnh hậu
 # ======================
@@ -1198,7 +1306,7 @@ draw_labels(C2)
 btn_frame = Frame(root, bg="white")
 btn_frame.pack(side=BOTTOM, pady=5, fill="x")
 
-# Hàng 1: classical search
+# Hàng 1: 
 Button(btn_frame, text="BFS", font=("Arial",14,"bold"),
        bg="#009688", fg="white", command=run_bfs_auto).grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="DFS", font=("Arial",14,"bold"),
@@ -1210,7 +1318,9 @@ Button(btn_frame, text="DLS", font=("Arial",14,"bold"),
 Button(btn_frame, text="IDS", font=("Arial",14,"bold"),
        bg="#9E9E9E", fg="white", command=run_ids_auto).grid(row=0, column=4, padx=5, pady=5, sticky="ew")
 
-# Hàng 2: heuristic search
+
+
+# Hàng 2: 
 Button(btn_frame, text="Greedy Best-First", font=("Arial",14,"bold"),
        bg="#9E9E9E", fg="white", command=run_gbfs_auto).grid(row=1, column=0, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="A* Search", font=("Arial",14,"bold"),
@@ -1220,7 +1330,7 @@ Button(btn_frame, text="Hill Climbing", font=("Arial",14,"bold"),
 Button(btn_frame, text="Simulated Annealing", font=("Arial",14,"bold"),
        bg="#607D8B", fg="white", command=run_sa_auto).grid(row=1, column=3, padx=5, pady=5, sticky="ew")
 
-# Hàng 3: Local & Advanced
+# Hàng 3: 
 Button(btn_frame, text="Local Beam", font=("Arial",14,"bold"),
        bg="#607D8B", fg="white", command=run_localBeam_auto).grid(row=2, column=0, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="Genetic Algorithm", font=("Arial",14,"bold"),
@@ -1235,8 +1345,10 @@ Button(btn_frame, text="Backtracking", font=("Arial",14,"bold"),
        bg="#4E342E", fg="white", command=run_backtracking_auto).grid(row=2, column=5, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="Forward Checking", font=("Arial",14,"bold"),
        bg="#FF5722", fg="white", command=run_forward_checking_auto).grid(row=2, column=6, padx=5, pady=5, sticky="ew")
+Button(btn_frame, text="AC-3", font=("Arial",14,"bold"),
+       bg="#FF5722", fg="white", command=run_ac3_auto).grid(row=2, column=7, padx=5, pady=5, sticky="ew")
 
-# Hàng 4: Control
+# Hàng 4:
 Button(btn_frame, text="⏯ Resume", font=("Arial",14,"bold"),
        bg="#4CAF50", fg="white", command=resume_run).grid(row=1, column=4, padx=5, pady=5, sticky="ew")
 Button(btn_frame, text="⏸ Stop", font=("Arial",14,"bold"),

@@ -1,4 +1,5 @@
 from queue import Queue, PriorityQueue
+from collections import deque
 from tkinter import *
 import numpy as np
 import random
@@ -487,7 +488,6 @@ def sensorless_search_queens():
                     parent[new_belief] = belief
                     action_parent[new_belief] = col
                     frontier.put(new_belief)
-
     return [], ()
 
 # ======================
@@ -591,3 +591,55 @@ def forward_checking_search(N):
     start = []
     parent = {tuple(start): None}
     return forward_check(start, domains, parent)
+
+# ======================
+# AC-3
+# ======================
+def ac3_search(N):
+    def revise(domains, Xi, Xj):
+        revised = False
+        to_remove = set()
+        for x in domains[Xi]:
+            # Nếu không có giá trị y nào trong Xj hợp lệ, loại bỏ x
+            if not any(abs(x - y) != abs(Xi - Xj) and x != y for y in domains[Xj]):
+                to_remove.add(x)
+                revised = True
+        if to_remove:
+            domains[Xi] -= to_remove
+        return revised
+
+    def ac3(domains):
+        queue = deque((i, j) for i in range(N) for j in range(N) if i != j)
+        while queue:
+            Xi, Xj = queue.popleft()
+            if revise(domains, Xi, Xj):
+                if not domains[Xi]:
+                    return False
+                for Xk in range(N):
+                    if Xk != Xi and Xk != Xj:
+                        queue.append((Xk, Xi))
+        return True
+
+    def backtrack(state, domains, parent):
+        if len(state) == N:
+            return reconstruct_path(parent, tuple(state))
+
+        row = len(state)
+        for col in sorted(domains[row]):
+            new_state = state + [col]
+            new_domains = [d.copy() for d in domains]
+            new_domains[row] = {col}
+
+            if ac3(new_domains):  # Kiểm tra nhất quán cung trước khi đi tiếp
+                tnew = tuple(new_state)
+                if tnew not in parent:
+                    parent[tnew] = tuple(state)
+                result = backtrack(new_state, new_domains, parent)
+                if result is not None:
+                    return result
+        return None
+
+    domains = [set(range(N)) for _ in range(N)]
+    start = []
+    parent = {tuple(start): None}
+    return backtrack(start, domains, parent)
